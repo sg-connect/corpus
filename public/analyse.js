@@ -8,10 +8,12 @@ async function runAnalysis() {
   const btnText = document.getElementById('btnText');
   const btnSpinner = document.getElementById('btnSpinner');
 
-  output.textContent = '';
-  output.classList.remove('loading');
+  output.textContent = 'Analysing…';
+  output.classList.add('loading');
   btnText.textContent = 'Analysing...';
   btnSpinner.style.display = 'inline-block';
+
+  let firstChunk = true;
 
   try {
     const res = await fetch('/api/analyse', {
@@ -29,7 +31,15 @@ async function runAnalysis() {
       const lines = decoder.decode(value).split('\n').filter(l => l.startsWith('data: '));
       for (const line of lines) {
         const data = JSON.parse(line.slice(6));
-        if (data.chunk) output.textContent += data.chunk;
+        if (data.chunk) {
+          if (firstChunk) {
+            output.textContent = '';
+            output.classList.remove('loading');
+            firstChunk = false;
+          }
+          output.textContent += data.chunk;
+          output.scrollTop = output.scrollHeight;
+        }
         if (data.done) {
           document.getElementById('inputText').value = '';
           loadHistory();
@@ -39,6 +49,7 @@ async function runAnalysis() {
       }
     }
   } catch (err) {
+    output.classList.remove('loading');
     output.textContent = `Error: ${err.message}`;
   } finally {
     btnText.textContent = 'Analyse & Save';
@@ -65,8 +76,8 @@ async function analysePhoto() {
   const output = document.getElementById('analysisOutput');
   btn.textContent = 'Analysing photo...';
   btn.disabled = true;
-  output.classList.remove('loading');
-  output.textContent = 'Analysing body photo with AI vision model...';
+  output.textContent = 'Analysing body photo with AI vision model…';
+  output.classList.add('loading');
 
   const formData = new FormData();
   formData.append('photo', selectedPhoto);
@@ -76,7 +87,8 @@ async function analysePhoto() {
   try {
     const res = await fetch('/api/photos', { method: 'POST', body: formData });
     const data = await res.json();
-    if (data.error) { output.textContent = 'Error: ' + data.error; return; }
+    if (data.error) { output.classList.remove('loading'); output.textContent = 'Error: ' + data.error; return; }
+    output.classList.remove('loading');
     output.textContent = data.aiAnalysis;
     if (data.estimatedBodyFat) {
       output.textContent += `\n\nEstimated Body Fat: ~${data.estimatedBodyFat}%`;
