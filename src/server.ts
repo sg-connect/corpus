@@ -205,12 +205,13 @@ app.get('/api/food', async (_: Request, res: Response) => {
 });
 
 app.get('/api/dashboard', async (_: Request, res: Response) => {
-  const [profile, recentPhotos, recentAnalyses] = await Promise.all([
+  const [profile, recentPhotos, recentAnalyses, totalAnalyses] = await Promise.all([
     getProfile().findOne({}),
     getBodyPhotos().find({}).sort({ date: -1 }).limit(6).toArray(),
     getAnalyses().find({}).sort({ date: -1 }).limit(10).toArray(),
+    getAnalyses().countDocuments(),
   ]);
-  res.json({ profile, recentPhotos, recentAnalyses });
+  res.json({ profile, recentPhotos, recentAnalyses, totalAnalyses });
 });
 
 connectDB().then(() => {

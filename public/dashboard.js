@@ -3,7 +3,7 @@ let chartData = [];
 
 async function loadDashboard() {
   const res = await fetch('/api/dashboard');
-  const { profile, recentPhotos, recentAnalyses } = await res.json();
+  const { profile, recentPhotos, recentAnalyses, totalAnalyses } = await res.json();
 
   if (!profile) {
     document.getElementById('noProfile').style.display = 'block';
@@ -13,7 +13,7 @@ async function loadDashboard() {
   document.getElementById('dashboardContent').style.display = 'block';
   document.getElementById('welcomeTitle').textContent = `${profile.name}'s Health Dashboard`;
 
-  renderStats(profile, recentPhotos, recentAnalyses);
+  renderStats(profile, recentPhotos, recentAnalyses, totalAnalyses);
   renderPhotos(recentPhotos);
   await loadAnalysesPage(1);
   await loadInsights();
@@ -168,13 +168,13 @@ function renderChart(idx) {
   selectChartTab(idx);
 }
 
-function renderStats(profile, photos, analyses) {
+function renderStats(profile, photos, analyses, totalAnalyses) {
   const latestPhoto = photos[0];
 
   const stats = [
     { value: profile.weight ? `${profile.weight} kg` : '—', label: 'Weight' },
     { value: latestPhoto?.estimatedBodyFat ? `~${latestPhoto.estimatedBodyFat}%` : '—', label: 'Body Fat (est.)' },
-    { value: analyses.length || 0, label: 'Analyses' },
+    { value: totalAnalyses ?? analyses.length, label: 'Analyses' },
   ];
 
   document.getElementById('statsRow').innerHTML = stats.map(s => `
