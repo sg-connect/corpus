@@ -1,15 +1,15 @@
 :root {
-  --bg: #0a0a0f;
-  --surface: #111118;
-  --surface2: #1a1a24;
-  --border: #2a2a3a;
-  --accent: #7c6af7;
-  --accent2: #4ecdc4;
-  --success: #22c55e;
+  --bg: #f0f7f4;
+  --surface: #ffffff;
+  --surface2: #e8f5f0;
+  --border: #c3ddd6;
+  --accent: #0e9e6e;
+  --accent2: #1a7fd4;
+  --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --text: #e8e8f0;
-  --muted: #6b6b80;
+  --text: #0f2d24;
+  --muted: #5a8a7a;
   --radius: 12px;
 }
 
@@ -93,7 +93,7 @@ label {
 
 input, textarea, select {
   width: 100%;
-  background: var(--surface2);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.7rem 1rem;
@@ -126,7 +126,7 @@ textarea { resize: vertical; min-height: 120px; }
 .btn:hover { opacity: 0.85; }
 .btn:active { transform: scale(0.98); }
 .btn-primary { background: var(--accent); color: white; }
-.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8rem; }
 
 .badge {
@@ -171,6 +171,7 @@ textarea { resize: vertical; min-height: 120px; }
   line-height: 1.7;
   min-height: 200px;
   color: var(--text);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .analysis-output.loading { color: var(--muted); }
@@ -237,8 +238,9 @@ textarea { resize: vertical; min-height: 120px; }
 
 .tag-input-container { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .tag {
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  background: rgba(14,158,110,0.1);
+  border: 1px solid rgba(14,158,110,0.3);
+  color: var(--accent);
   border-radius: 20px;
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;
