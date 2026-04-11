@@ -124,7 +124,8 @@ export async function streamAnalysis(
   profile: UserProfile,
   inputText: string,
   recentBloodTests: BloodTest[],
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  lifestyle?: string
 ): Promise<void> {
   const profileContext = `
 Patient Profile:
@@ -140,7 +141,11 @@ Patient Profile:
       ).join('\n')}`
     : '';
 
-  const prompt = `${profileContext}${bloodContext}\n\nUser Input:\n${inputText}`;
+  const lifestyleContext = lifestyle
+    ? `\n\nCurrent Lifestyle Log:\n${lifestyle}`
+    : '';
+
+  const prompt = `${profileContext}${bloodContext}${lifestyleContext}\n\nUser Input:\n${inputText}\n\nProvide a thorough health analysis. If lifestyle info is provided, explicitly mention what the patient is doing well and what to improve.`;
 
   const response = await fetch(`${OLLAMA_BASE}/api/generate`, {
     method: 'POST',
@@ -168,7 +173,8 @@ Patient Profile:
 
 export async function generateInsights(
   profile: UserProfile,
-  analyses: AnalysisEntry[]
+  analyses: AnalysisEntry[],
+  lifestyle?: string
 ): Promise<Omit<InsightsCache, '_id' | 'generatedAt'>> {
   const profileCtx = `Patient: ${profile.name}, ${profile.age} years old, ${profile.gender}, ${profile.height}cm, ${profile.weight}kg. Conditions: ${profile.conditions.join(', ') || 'None'}. Medications: ${profile.medications.join(', ') || 'None'}.`;
 
@@ -180,18 +186,26 @@ export async function generateInsights(
     .map(a => `[${new Date(a.date).toISOString().slice(0, 10)}] ${(a.inputText || '').slice(0, 200)}\nAI: ${a.aiResponse.slice(0, 300)}`)
     .join('\n\n---\n\n');
 
+  const lifestyleSection = lifestyle
+    ? `\n\nCurrent Lifestyle Log (what the patient is doing right now):\n${lifestyle}\n`
+    : '';
+
   const prompt = `You are a personal health coach and medical educator. Analyse this patient's health history and return a JSON object that is educational and specific to their actual test results.
 
 ${profileCtx}
 
 Health history (oldest to newest):
 ${analysesText}
-
+${lifestyleSection}
 Return ONLY valid JSON with this exact structure. Every item must include a specific reason tied to the patient's actual data:
 
 {
   "condition": "One honest sentence about their current overall health based on their tests",
   "conditionLevel": "good",
+  "doingGreat": [
+    "Specific thing patient is doing well — why it helps them based on their data",
+    "Another positive habit or result — the health benefit explained"
+  ],
   "improving": [
     "Marker X improved from Y to Z between 2021 and 2025 — this means ..."
   ],
@@ -210,8 +224,7 @@ Return ONLY valid JSON with this exact structure. Every item must include a spec
     "White bread and refined pasta — rapidly spike blood glucose and insulin, worsening any glucose intolerance",
     "Butter and full-fat dairy — saturated fat raises LDL cholesterol directly",
     "Sugary drinks and fruit juices — liquid sugar bypasses satiety signals and drives blood sugar spikes",
-    "Processed meats (sausages, deli meat) — high in sodium and nitrates, linked to elevated blood pressure and inflammation",
-    "Gluten-heavy processed foods — can cause gut inflammation especially if any sensitivity exists"
+    "Processed meats (sausages, deli meat) — high in sodium and nitrates, linked to elevated blood pressure and inflammation"
   ],
   "vitamins": [
     "Vitamin D3 (2000–4000 IU daily) — most people are deficient; essential for immune function, bone health and mood regulation",
@@ -231,7 +244,8 @@ Return ONLY valid JSON with this exact structure. Every item must include a spec
 }
 
 conditionLevel must be exactly one of: "good", "fair", or "attention".
-Make every recommendation specific to this patient's actual blood results and history. The patient wants to learn WHY. Be educational and clear.`;
+doingGreat: find 2–4 things the patient is genuinely doing well from their lifestyle log and blood trends. Be specific and encouraging.
+Make every recommendation specific to this patient's actual blood results, lifestyle, and history. The patient wants to learn WHY. Be educational and clear.`;
 
   const attemptCall = async (): Promise<Omit<InsightsCache, '_id' | 'generatedAt'>> => {
     const response = await fetch(`${OLLAMA_BASE}/api/generate`, {
@@ -252,6 +266,7 @@ Make every recommendation specific to this patient's actual blood results and hi
     return {
       condition: parsed.condition || 'Analysis complete',
       conditionLevel: ['good', 'fair', 'attention'].includes(parsed.conditionLevel) ? parsed.conditionLevel : 'fair',
+      doingGreat: Array.isArray(parsed.doingGreat) ? parsed.doingGreat : [],
       improving: Array.isArray(parsed.improving) ? parsed.improving : [],
       declining: Array.isArray(parsed.declining) ? parsed.declining : [],
       stable: Array.isArray(parsed.stable) ? parsed.stable : [],

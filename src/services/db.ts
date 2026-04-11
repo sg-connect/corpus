@@ -1,5 +1,5 @@
 import { MongoClient, Db, Collection } from 'mongodb';
-import { UserProfile, BloodTest, BodyPhoto, AnalysisEntry, FoodLog, InsightsCache } from '../models';
+import { UserProfile, BloodTest, BodyPhoto, AnalysisEntry, FoodLog, InsightsCache, LifestyleEntry } from '../models';
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'corpus';
@@ -35,4 +35,8 @@ export function getFoodLogs(): Collection<FoodLog> {
 
 export function getInsightsCache(): Collection<InsightsCache> {
   return db.collection<InsightsCache>('insights_cache');
+}
+
+export function getLifestyleLogs(): Collection<LifestyleEntry> {
+  return db.collection<LifestyleEntry>('lifestyle_logs');
 }

@@ -200,4 +200,41 @@ uploadZone.addEventListener('drop', e => {
   }
 });
 
+async function loadLifestyle() {
+  try {
+    const res = await fetch('/api/lifestyle');
+    const data = await res.json();
+    if (data && data.content) {
+      document.getElementById('lifestyleText').value = data.content;
+      document.getElementById('lifestyleStatus').textContent = `Last updated ${new Date(data.date).toLocaleDateString()}`;
+    }
+  } catch {}
+}
+
+async function saveLifestyle() {
+  const content = document.getElementById('lifestyleText').value.trim();
+  if (!content) { alert('Please write something about your lifestyle first.'); return; }
+
+  const btn = document.getElementById('lifestyleBtnText');
+  const spinner = document.getElementById('lifestyleSpinner');
+  btn.textContent = 'Saving…';
+  spinner.style.display = 'inline-block';
+
+  try {
+    await fetch('/api/lifestyle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    document.getElementById('lifestyleStatus').textContent = `Saved ${new Date().toLocaleDateString()}`;
+    btn.textContent = 'Saved!';
+    setTimeout(() => { btn.textContent = 'Save Lifestyle'; }, 2000);
+  } catch {
+    btn.textContent = 'Save failed — try again';
+  } finally {
+    spinner.style.display = 'none';
+  }
+}
+
 loadHistory();
+loadLifestyle();

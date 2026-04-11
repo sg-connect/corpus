@@ -83,6 +83,7 @@ function renderInsights(insights) {
     document.getElementById('insightsDate').textContent = `Generated on ${new Date(insights.generatedAt).toLocaleDateString()}`;
   }
 
+  renderList('doingGreatList', insights.doingGreat, 'Add your lifestyle log to get personalised feedback');
   renderList('improvingList', insights.improving, 'No improving trends detected');
   renderList('decliningList', insights.declining, 'No declining trends detected');
   renderList('foodsList', insights.foods, 'No suggestions');

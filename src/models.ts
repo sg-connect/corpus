@@ -77,11 +77,19 @@ export interface InsightsCache {
   improving: string[];
   declining: string[];
   stable: string[];
+  doingGreat: string[];
   foods: string[];
   avoid: string[];
   vitamins: string[];
   sports: string[];
   lifestyle: string[];
+}
+
+export interface LifestyleEntry {
+  _id?: ObjectId;
+  date: Date;
+  content: string;
+  createdAt: Date;
 }
 
 export interface FoodLog {

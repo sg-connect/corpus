@@ -2,9 +2,9 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
-import { connectDB, getProfile, getBloodTests, getAnalyses, getFoodLogs, getInsightsCache } from './services/db';
+import { connectDB, getProfile, getBloodTests, getAnalyses, getFoodLogs, getInsightsCache, getLifestyleLogs } from './services/db';
 import { analyzeHealth, analyzeBodyPhoto, streamAnalysis, generateInsights } from './services/ollama';
-import { AnalysisEntry, BloodTest, InsightsCache } from './models';
+import { AnalysisEntry, BloodTest, InsightsCache, LifestyleEntry } from './models';
 
 const app = express();
 const PORT = 3300;
@@ -105,14 +105,17 @@ app.post('/api/analyse', async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  const recentTests = await getBloodTests().find({}).sort({ date: -1 }).limit(3).toArray();
+  const [recentTests, latestLifestyle] = await Promise.all([
+    getBloodTests().find({}).sort({ date: -1 }).limit(3).toArray(),
+    getLifestyleLogs().findOne({}, { sort: { date: -1 } }),
+  ]);
   let fullResponse = '';
 
   try {
     await streamAnalysis(profile, inputText, recentTests, (chunk) => {
       fullResponse += chunk;
       res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-    });
+    }, latestLifestyle?.content);
 
     const entry: Omit<AnalysisEntry, '_id'> = {
       date: new Date(),
@@ -154,6 +157,20 @@ app.delete('/api/reset', async (_: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+app.get('/api/lifestyle', async (_: Request, res: Response) => {
+  const entry = await getLifestyleLogs().findOne({}, { sort: { date: -1 } });
+  res.json(entry || null);
+});
+
+app.post('/api/lifestyle', async (req: Request, res: Response) => {
+  const { content } = req.body;
+  if (!content || !content.trim()) { res.status(400).json({ error: 'Content required' }); return; }
+  const now = new Date();
+  const entry: Omit<LifestyleEntry, '_id'> = { date: now, content: content.trim(), createdAt: now };
+  await getLifestyleLogs().insertOne(entry as LifestyleEntry);
+  res.json({ ok: true });
+});
+
 app.get('/api/insights', async (_: Request, res: Response) => {
   const cached = await getInsightsCache().findOne({}, { sort: { generatedAt: -1 } });
   if (cached) { res.json({ insights: cached, cached: true }); return; }
@@ -161,14 +178,16 @@ app.get('/api/insights', async (_: Request, res: Response) => {
 });
 
 app.post('/api/insights/refresh', async (_: Request, res: Response) => {
-  const profile = await getProfile().findOne({});
+  const [profile, analyses, latestLifestyle] = await Promise.all([
+    getProfile().findOne({}),
+    getAnalyses().find({}).sort({ date: 1 }).limit(60).toArray(),
+    getLifestyleLogs().findOne({}, { sort: { date: -1 } }),
+  ]);
   if (!profile) { res.status(400).json({ error: 'Set up your profile first' }); return; }
-
-  const analyses = await getAnalyses().find({}).sort({ date: 1 }).limit(60).toArray();
   if (analyses.length === 0) { res.status(400).json({ error: 'No analyses found' }); return; }
 
   try {
-    const raw = await generateInsights(profile, analyses);
+    const raw = await generateInsights(profile, analyses, latestLifestyle?.content);
     const doc: Omit<InsightsCache, '_id'> = { ...raw, generatedAt: new Date() };
     await getInsightsCache().deleteMany({});
     await getInsightsCache().insertOne(doc as InsightsCache);
