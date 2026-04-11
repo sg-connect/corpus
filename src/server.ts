@@ -9,6 +9,10 @@ import { AnalysisEntry, BloodTest, BodyPhoto } from './models';
 const app = express();
 const PORT = 3300;
 
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
@@ -68,36 +72,41 @@ app.post('/api/photos', upload.single('photo'), async (req: Request, res: Respon
   const profile = await getProfile().findOne({});
   if (!profile) { res.status(400).json({ error: 'Set up your profile first' }); return; }
 
-  const weight = req.body.weight ? parseFloat(req.body.weight) : undefined;
-  const aiAnalysis = await analyzeBodyPhoto(req.file.path, profile, weight);
+  try {
+    const weight = req.body.weight ? parseFloat(req.body.weight) : undefined;
+    const aiAnalysis = await analyzeBodyPhoto(req.file.path, profile, weight);
 
-  const fatMatch = aiAnalysis.match(/(\d+(?:\.\d+)?)\s*%/);
-  const estimatedBodyFat = fatMatch ? parseFloat(fatMatch[1]) : undefined;
+    const fatMatch = aiAnalysis.match(/(\d+(?:\.\d+)?)\s*%/);
+    const estimatedBodyFat = fatMatch ? parseFloat(fatMatch[1]) : undefined;
 
-  const now = new Date();
-  const photo: Omit<BodyPhoto, '_id'> = {
-    date: now,
-    filename: req.file.filename,
-    weight,
-    aiAnalysis,
-    estimatedBodyFat,
-    createdAt: now,
-  };
-  const result = await getBodyPhotos().insertOne(photo as BodyPhoto);
+    const now = new Date();
+    const photo: Omit<BodyPhoto, '_id'> = {
+      date: now,
+      filename: req.file.filename,
+      weight,
+      aiAnalysis,
+      estimatedBodyFat,
+      createdAt: now,
+    };
+    const result = await getBodyPhotos().insertOne(photo as BodyPhoto);
 
-  const entry: Omit<AnalysisEntry, '_id'> = {
-    date: now,
-    type: 'photo',
-    inputText: `Body photo${weight ? ` (${weight} kg)` : ''}`,
-    aiResponse: aiAnalysis,
-    summary: aiAnalysis.slice(0, 200),
-    keyFindings: [],
-    recommendations: [],
-    createdAt: now,
-  };
-  await getAnalyses().insertOne(entry as AnalysisEntry);
+    const entry: Omit<AnalysisEntry, '_id'> = {
+      date: now,
+      type: 'photo',
+      inputText: `Body photo${weight ? ` (${weight} kg)` : ''}`,
+      aiResponse: aiAnalysis,
+      summary: aiAnalysis.slice(0, 200),
+      keyFindings: [],
+      recommendations: [],
+      createdAt: now,
+    };
+    await getAnalyses().insertOne(entry as AnalysisEntry);
 
-  res.json({ id: result.insertedId, aiAnalysis, estimatedBodyFat });
+    res.json({ id: result.insertedId, aiAnalysis, estimatedBodyFat });
+  } catch (err) {
+    console.error('Photo analysis error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 app.post('/api/analyse', async (req: Request, res: Response) => {

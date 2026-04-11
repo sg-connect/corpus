@@ -75,7 +75,7 @@ Be professional, clinical, and constructive. Focus on health indicators, not aes
     body: JSON.stringify({
       model: VISION_MODEL,
       prompt,
-      images: [`data:${mime};base64,${imageData}`],
+      images: [imageData],
       stream: false,
     }),
   });
