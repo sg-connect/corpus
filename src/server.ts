@@ -105,17 +105,20 @@ app.post('/api/analyse', async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  const [recentTests, latestLifestyle] = await Promise.all([
+  const [recentTests, lifestyleEntries] = await Promise.all([
     getBloodTests().find({}).sort({ date: -1 }).limit(3).toArray(),
-    getLifestyleLogs().findOne({}, { sort: { date: -1 } }),
+    getLifestyleLogs().find({}).sort({ date: -1 }).limit(5).toArray(),
   ]);
+  const lifestyleContext = lifestyleEntries.length > 0
+    ? lifestyleEntries.reverse().map(e => `[${new Date(e.date).toISOString().slice(0, 10)}] ${e.content}`).join('\n\n')
+    : undefined;
   let fullResponse = '';
 
   try {
     await streamAnalysis(profile, inputText, recentTests, (chunk) => {
       fullResponse += chunk;
       res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-    }, latestLifestyle?.content);
+    }, lifestyleContext);
 
     const entry: Omit<AnalysisEntry, '_id'> = {
       date: new Date(),
@@ -157,9 +160,10 @@ app.delete('/api/reset', async (_: Request, res: Response) => {
   res.json({ ok: true });
 });
 
-app.get('/api/lifestyle', async (_: Request, res: Response) => {
-  const entry = await getLifestyleLogs().findOne({}, { sort: { date: -1 } });
-  res.json(entry || null);
+app.get('/api/lifestyle', async (req: Request, res: Response) => {
+  const limit = Math.min(50, parseInt(req.query.limit as string) || 20);
+  const entries = await getLifestyleLogs().find({}).sort({ date: -1 }).limit(limit).toArray();
+  res.json(entries);
 });
 
 app.post('/api/lifestyle', async (req: Request, res: Response) => {
@@ -178,16 +182,20 @@ app.get('/api/insights', async (_: Request, res: Response) => {
 });
 
 app.post('/api/insights/refresh', async (_: Request, res: Response) => {
-  const [profile, analyses, latestLifestyle] = await Promise.all([
+  const [profile, analyses, lifestyleEntries] = await Promise.all([
     getProfile().findOne({}),
     getAnalyses().find({}).sort({ date: 1 }).limit(60).toArray(),
-    getLifestyleLogs().findOne({}, { sort: { date: -1 } }),
+    getLifestyleLogs().find({}).sort({ date: -1 }).limit(10).toArray(),
   ]);
   if (!profile) { res.status(400).json({ error: 'Set up your profile first' }); return; }
   if (analyses.length === 0) { res.status(400).json({ error: 'No analyses found' }); return; }
 
+  const lifestyleContext = lifestyleEntries.length > 0
+    ? lifestyleEntries.reverse().map(e => `[${new Date(e.date).toISOString().slice(0, 10)}] ${e.content}`).join('\n\n')
+    : undefined;
+
   try {
-    const raw = await generateInsights(profile, analyses, latestLifestyle?.content);
+    const raw = await generateInsights(profile, analyses, lifestyleContext);
     const doc: Omit<InsightsCache, '_id'> = { ...raw, generatedAt: new Date() };
     await getInsightsCache().deleteMany({});
     await getInsightsCache().insertOne(doc as InsightsCache);

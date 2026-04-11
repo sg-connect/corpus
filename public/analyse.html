@@ -20,15 +20,19 @@
 
     <div class="card" style="margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-        <div class="card-title" style="margin-bottom:0">My Lifestyle</div>
-        <div id="lifestyleStatus" style="font-size:0.78rem;color:var(--muted)"></div>
+        <div class="card-title" style="margin-bottom:0">Lifestyle Log</div>
+        <span id="lifestyleCount" style="font-size:0.78rem;color:var(--muted)"></span>
       </div>
-      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem">Write everything about your current lifestyle — what you eat, sleep schedule, workouts (strength, cardio, frequency), stress levels, supplements. This is used as context for every analysis and insights generation.</p>
-      <textarea id="lifestyleText" placeholder="e.g. I wake up at 6:30am, sleep by 11pm (7.5h). Strength training Mon/Wed/Fri — bench, squats, deadlifts. Cardio Tue/Thu — 30min zone 2 run. Eating mostly chicken, rice, salads. Having coffee x2 daily, no alcohol. Taking creatine 5g and protein shake post-workout..." style="min-height:140px"></textarea>
-      <button class="btn btn-secondary" onclick="saveLifestyle()" style="margin-top:0.5rem">
-        <span id="lifestyleBtnText">Save Lifestyle</span>
-        <span id="lifestyleSpinner" class="spinner" style="display:none;border-color:rgba(0,0,0,0.2);border-top-color:var(--text)"></span>
-      </button>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem">Log anything — what you ate, workouts, sleep, stress, supplements. Each entry is timestamped and used as context for every analysis and insights generation.</p>
+      <textarea id="lifestyleText" placeholder="e.g. Slept 7h. Strength training — bench + squats. Had chicken and rice, two coffees. Creatine 5g post-workout. Feeling good." style="min-height:80px"></textarea>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+        <button class="btn btn-secondary" onclick="saveLifestyle()" style="padding:0.4rem 1rem;font-size:0.85rem">
+          <span id="lifestyleBtnText">Add Entry</span>
+          <span id="lifestyleSpinner" class="spinner" style="display:none;border-color:rgba(0,0,0,0.2);border-top-color:var(--text)"></span>
+        </button>
+        <span id="lifestyleStatus" style="font-size:0.78rem;color:var(--accent)"></span>
+      </div>
+      <div id="lifestyleHistory" style="margin-top:1rem"></div>
     </div>
 
     <div class="grid-2">

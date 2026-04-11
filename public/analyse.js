@@ -202,21 +202,39 @@ uploadZone.addEventListener('drop', e => {
 
 async function loadLifestyle() {
   try {
-    const res = await fetch('/api/lifestyle');
-    const data = await res.json();
-    if (data && data.content) {
-      document.getElementById('lifestyleText').value = data.content;
-      document.getElementById('lifestyleStatus').textContent = `Last updated ${new Date(data.date).toLocaleDateString()}`;
-    }
+    const entries = await fetch('/api/lifestyle').then(r => r.json());
+    renderLifestyleHistory(entries);
   } catch {}
+}
+
+function renderLifestyleHistory(entries) {
+  const container = document.getElementById('lifestyleHistory');
+  const countEl = document.getElementById('lifestyleCount');
+  if (!Array.isArray(entries) || entries.length === 0) {
+    if (countEl) countEl.textContent = '';
+    container.innerHTML = '<p style="font-size:0.82rem;color:var(--muted)">No entries yet. Start logging your daily habits above.</p>';
+    return;
+  }
+  if (countEl) countEl.textContent = `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}`;
+  container.innerHTML = entries.map((e, i) => {
+    const dateStr = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `<div style="border-top:1px solid var(--border);padding:0.65rem 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+        <span style="font-size:0.75rem;font-weight:600;color:var(--muted)">${dateStr}</span>
+        <button onclick="this.previousElementSibling.style.display='none';this.parentElement.nextElementSibling.style.webkitLineClamp=this.parentElement.nextElementSibling.style.webkitLineClamp==='unset'?'3':'unset';this.textContent=this.textContent==='less'?'more':'less'" style="font-size:0.72rem;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">more</button>
+      </div>
+      <div style="font-size:0.85rem;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap">${e.content}</div>
+    </div>`;
+  }).join('');
 }
 
 async function saveLifestyle() {
   const content = document.getElementById('lifestyleText').value.trim();
-  if (!content) { alert('Please write something about your lifestyle first.'); return; }
+  if (!content) { alert('Write something about your day first.'); return; }
 
   const btn = document.getElementById('lifestyleBtnText');
   const spinner = document.getElementById('lifestyleSpinner');
+  const status = document.getElementById('lifestyleStatus');
   btn.textContent = 'Saving…';
   spinner.style.display = 'inline-block';
 
@@ -226,11 +244,14 @@ async function saveLifestyle() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     });
-    document.getElementById('lifestyleStatus').textContent = `Saved ${new Date().toLocaleDateString()}`;
-    btn.textContent = 'Saved!';
-    setTimeout(() => { btn.textContent = 'Save Lifestyle'; }, 2000);
+    document.getElementById('lifestyleText').value = '';
+    status.textContent = 'Entry added';
+    btn.textContent = 'Add Entry';
+    setTimeout(() => { status.textContent = ''; }, 2500);
+    loadLifestyle();
   } catch {
-    btn.textContent = 'Save failed — try again';
+    btn.textContent = 'Failed — try again';
+    setTimeout(() => { btn.textContent = 'Add Entry'; }, 2500);
   } finally {
     spinner.style.display = 'none';
   }
