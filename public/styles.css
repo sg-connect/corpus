@@ -293,6 +293,35 @@ textarea { resize: vertical; min-height: 120px; }
 
 .tag button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.9rem; line-height: 1; }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0 0.25rem;
+}
+
+.page-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.page-btn:disabled { opacity: 0.35; cursor: default; }
+
+.page-info {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .container { padding: 1rem; }

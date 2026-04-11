@@ -13,7 +13,7 @@ async function loadDashboard() {
   renderStats(profile, recentPhotos, recentAnalyses);
   renderSuggestions(recentAnalyses);
   renderPhotos(recentPhotos);
-  renderAnalyses(recentAnalyses);
+  await loadAnalysesPage(1);
 
   if (recentAnalyses.length > 0) {
     document.getElementById('lastUpdated').textContent = new Date(recentAnalyses[0].date).toLocaleDateString();
@@ -95,9 +95,26 @@ function renderPhotos(photos) {
   `).join('');
 }
 
+let dashPage = 1;
+const DASH_LIMIT = 5;
+let dashTotal = 0;
+let dashPages = 1;
+
+async function loadAnalysesPage(page = 1) {
+  dashPage = page;
+  const res = await fetch(`/api/analyses?page=${page}&limit=${DASH_LIMIT}`);
+  const data = await res.json();
+  dashTotal = data.total;
+  dashPages = data.pages;
+  renderAnalyses(data.analyses);
+}
+
 function renderAnalyses(analyses) {
   const container = document.getElementById('analysisTimeline');
-  if (!analyses || analyses.length === 0) return;
+  if (!analyses || analyses.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:0.9rem">No analyses yet.</p>';
+    return;
+  }
 
   container.innerHTML = analyses.map(a => `
     <div class="timeline-item">
@@ -111,6 +128,15 @@ function renderAnalyses(analyses) {
       </div>
     </div>
   `).join('');
+
+  if (dashPages > 1) {
+    container.innerHTML += `
+      <div class="pagination" style="margin-top:1rem">
+        <button class="page-btn" onclick="loadAnalysesPage(${dashPage - 1})" ${dashPage <= 1 ? 'disabled' : ''}>← Prev</button>
+        <span class="page-info">Page ${dashPage} of ${dashPages} <span style="color:var(--muted);font-size:0.8rem">(${dashTotal} total)</span></span>
+        <button class="page-btn" onclick="loadAnalysesPage(${dashPage + 1})" ${dashPage >= dashPages ? 'disabled' : ''}>Next →</button>
+      </div>`;
+  }
 }
 
 loadDashboard();

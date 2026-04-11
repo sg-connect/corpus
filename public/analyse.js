@@ -129,9 +129,13 @@ async function analysePhoto() {
   }
 }
 
-async function loadHistory() {
-  const res = await fetch('/api/analyses');
-  const analyses = await res.json();
+let historyPage = 1;
+const HISTORY_LIMIT = 10;
+
+async function loadHistory(page = 1) {
+  historyPage = page;
+  const res = await fetch(`/api/analyses?page=${page}&limit=${HISTORY_LIMIT}`);
+  const { analyses, total, pages } = await res.json();
   const container = document.getElementById('historyTable');
 
   if (!analyses || analyses.length === 0) {
@@ -140,6 +144,7 @@ async function loadHistory() {
   }
 
   container.innerHTML = `
+    <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:0.875rem">
       <thead>
         <tr style="border-bottom:2px solid var(--border);text-align:left">
@@ -167,6 +172,13 @@ async function loadHistory() {
         `).join('')}
       </tbody>
     </table>
+    </div>
+    ${pages > 1 ? `
+    <div class="pagination">
+      <button class="page-btn" onclick="loadHistory(${page - 1})" ${page <= 1 ? 'disabled' : ''}>← Prev</button>
+      <span class="page-info">Page ${page} of ${pages} <span style="color:var(--muted);font-size:0.8rem">(${total} total)</span></span>
+      <button class="page-btn" onclick="loadHistory(${page + 1})" ${page >= pages ? 'disabled' : ''}>Next →</button>
+    </div>` : `<p style="color:var(--muted);font-size:0.8rem;margin-top:0.75rem;text-align:right">${total} record${total !== 1 ? 's' : ''}</p>`}
   `;
 }
 

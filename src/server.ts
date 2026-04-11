@@ -146,9 +146,15 @@ app.post('/api/analyse', async (req: Request, res: Response) => {
   res.end();
 });
 
-app.get('/api/analyses', async (_: Request, res: Response) => {
-  const analyses = await getAnalyses().find({}).sort({ date: -1 }).limit(50).toArray();
-  res.json(analyses);
+app.get('/api/analyses', async (req: Request, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, parseInt(req.query.limit as string) || 10);
+  const skip = (page - 1) * limit;
+  const [analyses, total] = await Promise.all([
+    getAnalyses().find({}).sort({ date: -1 }).skip(skip).limit(limit).toArray(),
+    getAnalyses().countDocuments(),
+  ]);
+  res.json({ analyses, total, page, pages: Math.ceil(total / limit) });
 });
 
 app.delete('/api/reset', async (_: Request, res: Response) => {
