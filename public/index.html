@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corpus</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      text-align: center;
+      padding: 2rem;
+    }
+    .hero-logo { font-size: 3.5rem; font-weight: 800; color: var(--accent); letter-spacing: -2px; margin-bottom: 1rem; }
+    .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 480px; margin-bottom: 2.5rem; line-height: 1.6; }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; max-width: 900px; margin: 3rem auto 0; }
+    .feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; }
+    .feature-icon { font-size: 2rem; margin-bottom: 0.8rem; }
+    .feature-title { font-weight: 600; margin-bottom: 0.4rem; }
+    .feature-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+    @media (max-width: 768px) { .features { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-logo">Corpus</a>
+    <a href="/dashboard.html">Dashboard</a>
+    <a href="/analyse.html">Analyse</a>
+    <a href="/profile.html">Profile</a>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-logo">Corpus</div>
+    <p class="hero-sub">Your personal health intelligence system. Drop in blood tests, body photos, and notes — let AI do the rest.</p>
+    <div class="hero-actions">
+      <a href="/analyse.html" class="btn btn-primary">Start Analysis</a>
+      <a href="/dashboard.html" class="btn btn-secondary">View Dashboard</a>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🩸</div>
+        <div class="feature-title">Blood Test Parsing</div>
+        <div class="feature-desc">Paste raw lab results and AI extracts every marker automatically</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📸</div>
+        <div class="feature-title">Body Composition</div>
+        <div class="feature-desc">Upload photos and get AI estimates of body fat and muscle mass</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Health Dashboard</div>
+        <div class="feature-desc">Track trends over time with personalized recommendations</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

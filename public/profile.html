@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corpus — Profile</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-logo">Corpus</a>
+    <a href="/dashboard.html">Dashboard</a>
+    <a href="/analyse.html">Analyse</a>
+    <a href="/profile.html" class="active">Profile</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-title">Your Profile</div>
+    <p class="page-sub">This information is used by the AI to give you personalised health insights. It's stored locally in your MongoDB.</p>
+
+    <form onsubmit="saveProfile(event)">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Basic Info</div>
+          <label>Full Name</label>
+          <input type="text" id="name" placeholder="Your name" required>
+          <label>Age</label>
+          <input type="number" id="age" placeholder="Years" required>
+          <label>Height (cm)</label>
+          <input type="number" id="height" placeholder="e.g. 180" required>
+          <label>Weight (kg)</label>
+          <input type="number" id="weight" placeholder="e.g. 80" step="0.1" required>
+          <label>Gender</label>
+          <select id="gender">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+          <label>Blood Type</label>
+          <select id="bloodType">
+            <option value="">Unknown</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-title">Medications</div>
+            <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">Add any medications you take regularly. AI will consider nutrient depletions and interactions.</p>
+            <div class="tag-input-container" id="medicationTags"></div>
+            <div style="display:flex;gap:0.5rem">
+              <input type="text" id="medInput" placeholder="Add medication..." style="margin-bottom:0" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('med')}">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addTag('med')">Add</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Conditions / Notes</div>
+            <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">Health conditions, allergies, or anything the AI should know about you.</p>
+            <div class="tag-input-container" id="conditionTags"></div>
+            <div style="display:flex;gap:0.5rem">
+              <input type="text" id="condInput" placeholder="Add condition..." style="margin-bottom:0" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('cond')}">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addTag('cond')">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem">
+        <button type="submit" class="btn btn-primary" id="saveBtn">Save Profile</button>
+        <span id="saveMsg" style="color:var(--success);margin-left:1rem;font-size:0.9rem;display:none">Saved!</span>
+      </div>
+    </form>
+  </div>
+
+  <script src="profile.js"></script>
+</body>
+</html>

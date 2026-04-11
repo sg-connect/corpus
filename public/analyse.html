@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corpus — Analyse</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-logo">Corpus</a>
+    <a href="/dashboard.html">Dashboard</a>
+    <a href="/analyse.html" class="active">Analyse</a>
+    <a href="/profile.html">Profile</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-title">Analyse</div>
+    <p class="page-sub">Drop in blood test results, notes about how you feel, medications, food — anything. AI will analyse it against your profile.</p>
+
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">Health Input</div>
+          <label>What would you like to analyse?</label>
+          <textarea id="inputText" placeholder="Paste blood test results, describe symptoms, write what you've been eating, list medications... anything health-related. The more context the better." style="min-height: 200px;"></textarea>
+
+          <label>Blood test date (if pasting results)</label>
+          <input type="date" id="bloodDate">
+
+          <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="runAnalysis()">
+              <span id="btnText">Analyse with AI</span>
+              <span id="btnSpinner" class="spinner" style="display:none"></span>
+            </button>
+            <button class="btn btn-secondary" onclick="saveBloodTest()" id="saveBloodBtn">Save Blood Test</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Body Photo (optional)</div>
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('photoInput').click()">
+            <div id="uploadPrompt">Click to upload a body photo for AI body composition analysis</div>
+            <img id="photoPreview" style="display:none">
+          </div>
+          <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
+          <input type="number" id="photoWeight" placeholder="Current weight (kg) — optional">
+          <button class="btn btn-secondary" id="analysePhotoBtn" onclick="analysePhoto()" style="display:none">Analyse Photo</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="height: fit-content;">
+          <div class="card-title">AI Analysis</div>
+          <div id="analysisOutput" class="analysis-output loading">Analysis will appear here. Enter your health data on the left and click "Analyse with AI".</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="bloodMarkersCard" style="display:none">
+      <div class="card-title">Extracted Blood Markers</div>
+      <div id="markersTable"></div>
+    </div>
+  </div>
+
+  <script src="analyse.js"></script>
+</body>
+</html>
