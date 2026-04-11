@@ -59,7 +59,7 @@ async function saveBloodTest() {
     });
     const data = await res.json();
 
-    if (data.markers && data.markers.length > 0) {
+    if (data.markers && Array.isArray(data.markers) && data.markers.length > 0) {
       document.getElementById('bloodMarkersCard').style.display = 'block';
       renderMarkers(data.markers);
     }

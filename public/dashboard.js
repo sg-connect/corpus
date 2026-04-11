@@ -43,7 +43,7 @@ function renderBloodMarkers(tests) {
   if (!tests || tests.length === 0) return;
 
   const latest = tests[0];
-  if (!latest.markers || latest.markers.length === 0) return;
+  if (!latest.markers || !Array.isArray(latest.markers) || latest.markers.length === 0) return;
 
   container.innerHTML = `
     <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem">${new Date(latest.date).toLocaleDateString()}</div>

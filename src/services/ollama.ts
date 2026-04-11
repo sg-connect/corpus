@@ -109,7 +109,12 @@ Example format:
   const data = await response.json() as { response: string };
 
   try {
-    return JSON.parse(data.response);
+    const parsed = JSON.parse(data.response);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed.markers && Array.isArray(parsed.markers)) return parsed.markers;
+    const firstArray = Object.values(parsed).find(v => Array.isArray(v));
+    if (firstArray) return firstArray as Array<{ name: string; value: number; unit: string }>;
+    return [];
   } catch {
     return [];
   }
