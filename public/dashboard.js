@@ -1,3 +1,6 @@
+let activeChart = null;
+let chartData = [];
+
 async function loadDashboard() {
   const res = await fetch('/api/dashboard');
   const { profile, recentPhotos, recentAnalyses } = await res.json();
@@ -11,13 +14,158 @@ async function loadDashboard() {
   document.getElementById('welcomeTitle').textContent = `${profile.name}'s Health Dashboard`;
 
   renderStats(profile, recentPhotos, recentAnalyses);
-  renderSuggestions(recentAnalyses);
   renderPhotos(recentPhotos);
   await loadAnalysesPage(1);
+  await loadInsights();
 
   if (recentAnalyses.length > 0) {
     document.getElementById('lastUpdated').textContent = new Date(recentAnalyses[0].date).toLocaleDateString();
   }
+}
+
+async function loadInsights() {
+  try {
+    const res = await fetch('/api/insights');
+    const data = await res.json();
+    if (data.insights) {
+      renderInsights(data.insights);
+    }
+  } catch {}
+}
+
+async function refreshInsights() {
+  const btn = document.getElementById('refreshInsightsBtn');
+  const btnText = document.getElementById('refreshBtnText');
+  const spinner = document.getElementById('refreshSpinner');
+
+  btn.disabled = true;
+  btnText.textContent = 'Analysing history…';
+  spinner.style.display = 'inline-block';
+  document.getElementById('noInsightsHint').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/insights/refresh', { method: 'POST' });
+    const data = await res.json();
+    if (data.insights) {
+      renderInsights(data.insights);
+    }
+  } catch {
+    alert('Failed to generate insights. Make sure the server is running.');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Refresh Insights';
+    spinner.style.display = 'none';
+  }
+}
+
+function renderInsights(insights) {
+  document.getElementById('noInsightsHint').style.display = 'none';
+  document.getElementById('insightsSection').style.display = 'block';
+  document.getElementById('refreshBtnText').textContent = 'Refresh Insights';
+
+  const levelMap = {
+    good: { label: 'Good', bg: '#d4f4e8', color: '#0e9e6e' },
+    fair: { label: 'Fair', bg: '#fff3cd', color: '#b08000' },
+    attention: { label: 'Needs Attention', bg: '#fde8e8', color: '#c0392b' }
+  };
+  const lvl = levelMap[insights.conditionLevel] || levelMap.fair;
+  const badge = document.getElementById('conditionBadge');
+  badge.textContent = lvl.label;
+  badge.style.background = lvl.bg;
+  badge.style.color = lvl.color;
+
+  document.getElementById('conditionText').textContent = insights.condition;
+  if (insights.generatedAt) {
+    document.getElementById('insightsDate').textContent = `Generated on ${new Date(insights.generatedAt).toLocaleDateString()}`;
+  }
+
+  const imp = document.getElementById('improvingList');
+  imp.innerHTML = (insights.improving || []).length
+    ? insights.improving.map(t => `<li>${t}</li>`).join('')
+    : '<li style="color:var(--muted)">No improving trends detected</li>';
+
+  const dec = document.getElementById('decliningList');
+  dec.innerHTML = (insights.declining || []).length
+    ? insights.declining.map(t => `<li>${t}</li>`).join('')
+    : '<li style="color:var(--muted)">No declining trends detected</li>';
+
+  const foods = document.getElementById('foodsList');
+  foods.innerHTML = (insights.foods || []).map(f => `<li>${f}</li>`).join('') || '<li style="color:var(--muted)">No suggestions</li>';
+
+  const lifestyle = document.getElementById('lifestyleList');
+  lifestyle.innerHTML = (insights.lifestyle || []).map(l => `<li>${l}</li>`).join('') || '<li style="color:var(--muted)">No suggestions</li>';
+
+  chartData = insights.chartData || [];
+  if (chartData.length > 0) {
+    buildChartTabs(chartData);
+    renderChart(0);
+  }
+}
+
+function buildChartTabs(data) {
+  const container = document.getElementById('chartTabs');
+  container.innerHTML = data.map((m, i) => `
+    <button class="page-btn" id="tab-${i}" onclick="selectChartTab(${i})" style="font-size:0.8rem">${m.marker}</button>
+  `).join('');
+}
+
+function selectChartTab(idx) {
+  document.querySelectorAll('#chartTabs .page-btn').forEach((b, i) => {
+    b.style.background = i === idx ? 'var(--accent)' : '';
+    b.style.color = i === idx ? '#fff' : '';
+  });
+  renderChart(idx);
+}
+
+function renderChart(idx) {
+  const marker = chartData[idx];
+  if (!marker || !marker.points || marker.points.length === 0) return;
+
+  const labels = marker.points.map(p => p.date);
+  const values = marker.points.map(p => p.value);
+
+  const ctx = document.getElementById('markerChart').getContext('2d');
+
+  if (activeChart) {
+    activeChart.destroy();
+    activeChart = null;
+  }
+
+  activeChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: `${marker.marker} (${marker.unit || ''})`,
+        data: values,
+        borderColor: '#0e9e6e',
+        backgroundColor: 'rgba(14,158,110,0.08)',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointBackgroundColor: '#0e9e6e',
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { font: { size: 11 } },
+          title: { display: !!marker.unit, text: marker.unit, font: { size: 11 }, color: '#666' }
+        }
+      }
+    }
+  });
+
+  selectChartTab(idx);
 }
 
 function renderStats(profile, photos, analyses) {
@@ -35,51 +183,6 @@ function renderStats(profile, photos, analyses) {
       <div class="stat-label">${s.label}</div>
     </div>
   `).join('');
-}
-
-function renderSuggestions(analyses) {
-  const container = document.getElementById('suggestionsCard');
-  if (!analyses || analyses.length === 0) return;
-
-  const latest = analyses.find(a => a.type !== 'photo') || analyses[0];
-  const text = latest.aiResponse || '';
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-  const bullets = [];
-  let inRecs = false;
-
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (lower.includes('recommend') || lower.includes('suggest') || lower.includes('action')) {
-      inRecs = true;
-      continue;
-    }
-    if (inRecs && /^[-•→*]|\d+\./.test(line)) {
-      bullets.push(line.replace(/^[-•→*\d\.\s]+/, '').trim());
-      if (bullets.length >= 5) break;
-    }
-  }
-
-  if (bullets.length === 0) {
-    for (const line of lines) {
-      if (/^[-•→*]|\d+\./.test(line)) {
-        bullets.push(line.replace(/^[-•→*\d\.\s]+/, '').trim());
-        if (bullets.length >= 5) break;
-      }
-    }
-  }
-
-  if (bullets.length === 0) {
-    container.innerHTML = `<p style="font-size:0.9rem;line-height:1.6">${text.slice(0, 350)}${text.length > 350 ? '...' : ''}</p><p style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">From ${new Date(latest.date).toLocaleDateString()}</p>`;
-    return;
-  }
-
-  container.innerHTML = `
-    <ul style="margin:0;padding-left:1.2rem;line-height:1.9">
-      ${bullets.map(s => `<li style="font-size:0.9rem">${s}</li>`).join('')}
-    </ul>
-    <p style="color:var(--muted);font-size:0.8rem;margin-top:0.75rem">From analysis on ${new Date(latest.date).toLocaleDateString()} · <a href="/analyse.html" style="color:var(--accent)">View all →</a></p>
-  `;
 }
 
 function renderPhotos(photos) {

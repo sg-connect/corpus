@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Corpus — Dashboard</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <nav>
@@ -17,7 +18,6 @@
   <div class="container">
     <div id="noProfile" style="display:none">
       <div class="card" style="text-align:center; padding:3rem;">
-        <div style="font-size:2rem; margin-bottom:1rem;">👤</div>
         <h2 style="margin-bottom:0.5rem;">Set up your profile first</h2>
         <p style="color:var(--muted); margin-bottom:1.5rem;">Corpus needs your health profile to give you personalised insights.</p>
         <a href="/profile.html" class="btn btn-primary">Set Up Profile</a>
@@ -30,14 +30,60 @@
           <div class="page-title" id="welcomeTitle">Your Health Dashboard</div>
           <p class="page-sub" style="margin-bottom:0">Last updated: <span id="lastUpdated">—</span></p>
         </div>
-        <a href="/analyse.html" class="btn btn-primary">+ New Analysis</a>
+        <div style="display:flex;gap:0.75rem">
+          <button class="btn btn-secondary" id="refreshInsightsBtn" onclick="refreshInsights()">
+            <span id="refreshBtnText">Generate Insights</span>
+            <span id="refreshSpinner" class="spinner" style="display:none;border-color:rgba(0,0,0,0.2);border-top-color:var(--text)"></span>
+          </button>
+          <a href="/analyse.html" class="btn btn-primary">+ New Analysis</a>
+        </div>
       </div>
 
       <div class="grid-3" id="statsRow" style="margin-bottom:1.5rem"></div>
 
-      <div class="card" style="margin-bottom:1.5rem">
-        <div class="card-title">AI Suggestions</div>
-        <div id="suggestionsCard"><p style="color:var(--muted);font-size:0.9rem">Run an analysis to get AI suggestions. <a href="/analyse.html" style="color:var(--accent)">Go to Analyse →</a></p></div>
+      <div id="insightsSection" style="display:none">
+        <div class="card" style="margin-bottom:1.5rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+            <div class="card-title" style="margin-bottom:0">Health Condition</div>
+            <span id="conditionBadge" style="font-size:0.78rem;padding:0.25rem 0.75rem;border-radius:20px;font-weight:600"></span>
+          </div>
+          <p id="conditionText" style="font-size:1rem;line-height:1.6;color:var(--text)"></p>
+          <p id="insightsDate" style="color:var(--muted);font-size:0.78rem;margin-top:0.75rem"></p>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:1.5rem">
+          <div class="card">
+            <div class="card-title" style="color:var(--success)">Improving</div>
+            <ul id="improvingList" style="margin:0;padding-left:1.1rem;line-height:1.9;font-size:0.875rem"></ul>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--danger)">Needs Attention</div>
+            <ul id="decliningList" style="margin:0;padding-left:1.1rem;line-height:1.9;font-size:0.875rem"></ul>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-title">Blood Markers Over Time</div>
+          <div id="chartTabs" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem"></div>
+          <div style="position:relative;height:280px">
+            <canvas id="markerChart"></canvas>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:1.5rem">
+          <div class="card">
+            <div class="card-title">Recommended Foods</div>
+            <ul id="foodsList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
+          </div>
+          <div class="card">
+            <div class="card-title">Lifestyle Suggestions</div>
+            <ul id="lifestyleList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="noInsightsHint" class="card" style="margin-bottom:1.5rem;text-align:center;padding:2rem">
+        <p style="color:var(--muted);font-size:0.95rem">Click <strong>Generate Insights</strong> to get AI-powered trends, charts, food advice and a full health condition summary from your history.</p>
       </div>
 
       <div class="grid-2">
@@ -49,7 +95,6 @@
             </div>
           </div>
         </div>
-
         <div>
           <div class="card">
             <div class="card-title">Recent Analyses</div>

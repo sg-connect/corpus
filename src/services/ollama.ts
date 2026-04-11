@@ -1,4 +1,4 @@
-import { UserProfile, BloodTest } from '../models';
+import { UserProfile, BloodTest, AnalysisEntry, InsightsCache } from '../models';
 
 const OLLAMA_BASE = 'http://localhost:11434';
 const TEXT_MODEL = 'corpus-ai';
@@ -163,5 +163,72 @@ Patient Profile:
         if (parsed.response) onChunk(parsed.response);
       } catch {}
     }
+  }
+}
+
+export async function generateInsights(
+  profile: UserProfile,
+  analyses: AnalysisEntry[]
+): Promise<Omit<InsightsCache, '_id' | 'generatedAt'>> {
+  const profileCtx = `Patient: ${profile.name}, ${profile.age}yo, ${profile.gender}, ${profile.height}cm, ${profile.weight}kg. Conditions: ${profile.conditions.join(', ') || 'None'}. Medications: ${profile.medications.join(', ') || 'None'}.`;
+
+  const analysesText = analyses
+    .filter(a => a.type !== 'photo')
+    .slice(0, 40)
+    .map(a => `[${new Date(a.date).toISOString().slice(0, 10)}] ${a.inputText || ''}\n${a.aiResponse.slice(0, 400)}`)
+    .join('\n\n---\n\n');
+
+  const prompt = `You are a health data analyst. Analyze this patient's full blood test history (2019–2026) and return a structured JSON object.
+
+${profileCtx}
+
+Analysis history (chronological):
+${analysesText}
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "condition": "One sentence describing current overall health status",
+  "conditionLevel": "good" or "fair" or "attention",
+  "improving": ["List markers/areas that improved over time with detail"],
+  "declining": ["List markers/areas that worsened over time with detail"],
+  "stable": ["List markers/areas that stayed stable"],
+  "foods": ["Specific food to eat 1", "food 2", "food 3", "food 4", "food 5"],
+  "lifestyle": ["Specific lifestyle recommendation 1", "rec 2", "rec 3", "rec 4"],
+  "chartData": [
+    {
+      "marker": "Marker name",
+      "unit": "unit",
+      "points": [
+        {"date": "YYYY-MM-DD", "value": 95}
+      ]
+    }
+  ]
+}
+
+Extract chartData for all key blood markers found across the analyses (glucose, cholesterol, HbA1c, triglycerides, etc.) with their values and dates. Return 5-10 markers max.`;
+
+  const response = await fetch(`${OLLAMA_BASE}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: TEXT_MODEL, prompt, stream: false, format: 'json' }),
+  });
+
+  if (!response.ok) throw new Error(`Ollama insights error: ${response.statusText}`);
+  const data = await response.json() as { response: string };
+
+  try {
+    const parsed = JSON.parse(data.response);
+    return {
+      condition: parsed.condition || 'Analysis complete',
+      conditionLevel: parsed.conditionLevel || 'fair',
+      improving: Array.isArray(parsed.improving) ? parsed.improving : [],
+      declining: Array.isArray(parsed.declining) ? parsed.declining : [],
+      stable: Array.isArray(parsed.stable) ? parsed.stable : [],
+      foods: Array.isArray(parsed.foods) ? parsed.foods : [],
+      lifestyle: Array.isArray(parsed.lifestyle) ? parsed.lifestyle : [],
+      chartData: Array.isArray(parsed.chartData) ? parsed.chartData : [],
+    };
+  } catch {
+    throw new Error('Failed to parse insights JSON');
   }
 }

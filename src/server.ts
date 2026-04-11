@@ -2,9 +2,9 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
-import { connectDB, getProfile, getBloodTests, getBodyPhotos, getAnalyses, getFoodLogs } from './services/db';
-import { analyzeHealth, analyzeBodyPhoto, streamAnalysis } from './services/ollama';
-import { AnalysisEntry, BloodTest, BodyPhoto } from './models';
+import { connectDB, getProfile, getBloodTests, getBodyPhotos, getAnalyses, getFoodLogs, getInsightsCache } from './services/db';
+import { analyzeHealth, analyzeBodyPhoto, streamAnalysis, generateInsights } from './services/ollama';
+import { AnalysisEntry, BloodTest, BodyPhoto, InsightsCache } from './models';
 
 const app = express();
 const PORT = 3300;
@@ -163,8 +163,34 @@ app.delete('/api/reset', async (_: Request, res: Response) => {
     getBodyPhotos().deleteMany({}),
     getAnalyses().deleteMany({}),
     getFoodLogs().deleteMany({}),
+    getInsightsCache().deleteMany({}),
   ]);
   res.json({ ok: true });
+});
+
+app.get('/api/insights', async (_: Request, res: Response) => {
+  const cached = await getInsightsCache().findOne({}, { sort: { generatedAt: -1 } });
+  if (cached) { res.json({ insights: cached, cached: true }); return; }
+  res.json({ insights: null, cached: false });
+});
+
+app.post('/api/insights/refresh', async (_: Request, res: Response) => {
+  const profile = await getProfile().findOne({});
+  if (!profile) { res.status(400).json({ error: 'Set up your profile first' }); return; }
+
+  const analyses = await getAnalyses().find({}).sort({ date: 1 }).limit(60).toArray();
+  if (analyses.length === 0) { res.status(400).json({ error: 'No analyses found' }); return; }
+
+  try {
+    const raw = await generateInsights(profile, analyses);
+    const doc: Omit<InsightsCache, '_id'> = { ...raw, generatedAt: new Date() };
+    await getInsightsCache().deleteMany({});
+    await getInsightsCache().insertOne(doc as InsightsCache);
+    res.json({ insights: doc });
+  } catch (err) {
+    console.error('Insights error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 app.post('/api/food', async (req: Request, res: Response) => {

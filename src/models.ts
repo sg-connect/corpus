@@ -58,6 +58,30 @@ export interface AnalysisEntry {
   createdAt: Date;
 }
 
+export interface MarkerPoint {
+  date: string;
+  value: number;
+}
+
+export interface MarkerTrend {
+  marker: string;
+  unit: string;
+  points: MarkerPoint[];
+}
+
+export interface InsightsCache {
+  _id?: ObjectId;
+  generatedAt: Date;
+  condition: string;
+  conditionLevel: 'good' | 'fair' | 'attention';
+  improving: string[];
+  declining: string[];
+  stable: string[];
+  foods: string[];
+  lifestyle: string[];
+  chartData: MarkerTrend[];
+}
+
 export interface FoodLog {
   _id?: ObjectId;
   date: Date;
