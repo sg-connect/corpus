@@ -45,8 +45,11 @@
 
       <div>
         <div class="card" style="height: fit-content;">
-          <div class="card-title">AI Analysis</div>
-          <div id="analysisOutput" class="analysis-output loading">Analysis will appear here. Enter your health data on the left and click "Analyse &amp; Save".</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <div class="card-title" style="margin-bottom:0">AI Analysis</div>
+            <div id="analysisStatus" style="font-size:0.78rem;color:var(--muted)"></div>
+          </div>
+          <div id="analysisOutput" class="analysis-output state-idle">Analysis will appear here. Enter your health data on the left and click "Analyse &amp; Save".</div>
         </div>
       </div>
     </div>

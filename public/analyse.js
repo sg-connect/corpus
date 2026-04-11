@@ -1,3 +1,17 @@
+function setOutputState(state, text) {
+  const output = document.getElementById('analysisOutput');
+  const status = document.getElementById('analysisStatus');
+  output.className = `analysis-output state-${state}`;
+  if (text !== undefined) output.textContent = text;
+  if (state === 'analysing') {
+    status.innerHTML = '<span class="analysis-status-dot dot-analysing"></span>Analysing…';
+  } else if (state === 'done') {
+    status.innerHTML = '<span class="analysis-status-dot dot-done"></span>Done';
+  } else {
+    status.innerHTML = '';
+  }
+}
+
 let selectedPhoto = null;
 
 async function runAnalysis() {
@@ -8,8 +22,7 @@ async function runAnalysis() {
   const btnText = document.getElementById('btnText');
   const btnSpinner = document.getElementById('btnSpinner');
 
-  output.textContent = 'Analysing…';
-  output.classList.add('loading');
+  setOutputState('analysing', 'Analysing…');
   btnText.textContent = 'Analysing...';
   btnSpinner.style.display = 'inline-block';
 
@@ -34,23 +47,22 @@ async function runAnalysis() {
         if (data.chunk) {
           if (firstChunk) {
             output.textContent = '';
-            output.classList.remove('loading');
             firstChunk = false;
           }
           output.textContent += data.chunk;
           output.scrollTop = output.scrollHeight;
         }
         if (data.done) {
+          setOutputState('done');
           document.getElementById('inputText').value = '';
           loadHistory();
           break;
         }
-        if (data.error) { output.textContent += `\n\nError: ${data.error}`; break; }
+        if (data.error) { setOutputState('idle', `Error: ${data.error}`); break; }
       }
     }
   } catch (err) {
-    output.classList.remove('loading');
-    output.textContent = `Error: ${err.message}`;
+    setOutputState('idle', `Error: ${err.message}`);
   } finally {
     btnText.textContent = 'Analyse & Save';
     btnSpinner.style.display = 'none';
@@ -76,14 +88,13 @@ async function analysePhoto() {
   const output = document.getElementById('analysisOutput');
   btn.textContent = 'Analysing photo...';
   btn.disabled = true;
-  output.classList.add('loading');
 
   let elapsed = 0;
   const tick = () => {
     const m = Math.floor(elapsed / 60);
     const s = elapsed % 60;
     const t = m > 0 ? `${m}m ${s}s` : `${s}s`;
-    output.textContent = `Analysing body photo with AI vision model… (${t})\n\nVision models take 1–3 minutes — still working.`;
+    setOutputState('analysing', `Analysing body photo with AI vision model… (${t})\n\nVision models take 1–3 minutes — still working.`);
     elapsed++;
   };
   tick();
@@ -98,11 +109,10 @@ async function analysePhoto() {
     const res = await fetch('/api/photos', { method: 'POST', body: formData });
     const data = await res.json();
     clearInterval(timer);
-    if (data.error) { output.classList.remove('loading'); output.textContent = 'Error: ' + data.error; return; }
-    output.classList.remove('loading');
-    output.textContent = data.aiAnalysis;
+    if (data.error) { setOutputState('idle', 'Error: ' + data.error); return; }
+    setOutputState('done', data.aiAnalysis);
     if (data.estimatedBodyFat) {
-      output.textContent += `\n\nEstimated Body Fat: ~${data.estimatedBodyFat}%`;
+      document.getElementById('analysisOutput').textContent += `\n\nEstimated Body Fat: ~${data.estimatedBodyFat}%`;
     }
     selectedPhoto = null;
     document.getElementById('photoPreview').style.display = 'none';
@@ -112,8 +122,7 @@ async function analysePhoto() {
     loadHistory();
   } catch (err) {
     clearInterval(timer);
-    output.classList.remove('loading');
-    output.textContent = 'Error: ' + err.message;
+    setOutputState('idle', 'Error: ' + err.message);
   } finally {
     btn.textContent = 'Analyse & Save Photo';
     btn.disabled = false;
