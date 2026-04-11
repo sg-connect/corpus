@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Corpus — Dashboard</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <nav>
@@ -62,28 +61,36 @@
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:1.5rem">
-          <div class="card-title">Blood Markers Over Time</div>
-          <div id="chartTabs" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem"></div>
-          <div style="position:relative;height:280px">
-            <canvas id="markerChart"></canvas>
+        <div class="grid-2" style="margin-bottom:1.5rem">
+          <div class="card">
+            <div class="card-title">What to Eat</div>
+            <ul id="foodsList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--danger)">What to Avoid</div>
+            <ul id="avoidList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
           </div>
         </div>
 
         <div class="grid-2" style="margin-bottom:1.5rem">
           <div class="card">
-            <div class="card-title">Recommended Foods</div>
-            <ul id="foodsList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
+            <div class="card-title">Vitamins & Supplements</div>
+            <ul id="vitaminsList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
           </div>
           <div class="card">
-            <div class="card-title">Lifestyle Suggestions</div>
-            <ul id="lifestyleList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
+            <div class="card-title">Sport & Exercise</div>
+            <ul id="sportsList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem"></ul>
           </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-title">Lifestyle Recommendations</div>
+          <ul id="lifestyleList" style="margin:0;padding-left:1.1rem;line-height:2;font-size:0.875rem;columns:2;column-gap:2rem"></ul>
         </div>
       </div>
 
       <div id="noInsightsHint" class="card" style="margin-bottom:1.5rem;text-align:center;padding:2rem">
-        <p style="color:var(--muted);font-size:0.95rem">Click <strong>Generate Insights</strong> to get AI-powered trends, charts, food advice and a full health condition summary from your history.</p>
+        <p style="color:var(--muted);font-size:0.95rem">Click <strong>Generate Insights</strong> to get AI-powered food advice, vitamins, sport recommendations, things to avoid, and a full health condition summary from your history.</p>
       </div>
 
       <div class="grid-2">

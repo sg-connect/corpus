@@ -78,8 +78,10 @@ export interface InsightsCache {
   declining: string[];
   stable: string[];
   foods: string[];
+  avoid: string[];
+  vitamins: string[];
+  sports: string[];
   lifestyle: string[];
-  chartData: MarkerTrend[];
 }
 
 export interface FoodLog {
