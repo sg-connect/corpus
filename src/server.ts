@@ -2,9 +2,9 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
-import { connectDB, getProfile, getBloodTests, getBodyPhotos, getAnalyses, getFoodLogs, getInsightsCache } from './services/db';
+import { connectDB, getProfile, getBloodTests, getAnalyses, getFoodLogs, getInsightsCache } from './services/db';
 import { analyzeHealth, analyzeBodyPhoto, streamAnalysis, generateInsights } from './services/ollama';
-import { AnalysisEntry, BloodTest, BodyPhoto, InsightsCache } from './models';
+import { AnalysisEntry, BloodTest, InsightsCache } from './models';
 
 const app = express();
 const PORT = 3300;
@@ -24,7 +24,6 @@ const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
-app.use('/uploads', express.static(uploadsDir));
 
 app.get('/api/profile', async (_: Request, res: Response) => {
   const profile = await getProfile().findOne({});
@@ -61,11 +60,6 @@ app.post('/api/blood-tests', async (req: Request, res: Response) => {
   res.json({ id: result.insertedId, markers: [] });
 });
 
-app.get('/api/photos', async (_: Request, res: Response) => {
-  const photos = await getBodyPhotos().find({}).sort({ date: -1 }).toArray();
-  res.json(photos);
-});
-
 app.post('/api/photos', upload.single('photo'), async (req: Request, res: Response) => {
   if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
 
@@ -76,20 +70,12 @@ app.post('/api/photos', upload.single('photo'), async (req: Request, res: Respon
     const weight = req.body.weight ? parseFloat(req.body.weight) : undefined;
     const aiAnalysis = await analyzeBodyPhoto(req.file.path, profile, weight);
 
+    fs.unlink(req.file.path, () => {});
+
     const fatMatch = aiAnalysis.match(/(\d+(?:\.\d+)?)\s*%/);
     const estimatedBodyFat = fatMatch ? parseFloat(fatMatch[1]) : undefined;
 
     const now = new Date();
-    const photo: Omit<BodyPhoto, '_id'> = {
-      date: now,
-      filename: req.file.filename,
-      weight,
-      aiAnalysis,
-      estimatedBodyFat,
-      createdAt: now,
-    };
-    const result = await getBodyPhotos().insertOne(photo as BodyPhoto);
-
     const entry: Omit<AnalysisEntry, '_id'> = {
       date: now,
       type: 'photo',
@@ -102,9 +88,10 @@ app.post('/api/photos', upload.single('photo'), async (req: Request, res: Respon
     };
     await getAnalyses().insertOne(entry as AnalysisEntry);
 
-    res.json({ id: result.insertedId, aiAnalysis, estimatedBodyFat });
+    res.json({ aiAnalysis, estimatedBodyFat });
   } catch (err) {
     console.error('Photo analysis error:', err);
+    fs.unlink(req.file!.path, () => {});
     res.status(500).json({ error: String(err) });
   }
 });
@@ -160,7 +147,6 @@ app.get('/api/analyses', async (req: Request, res: Response) => {
 app.delete('/api/reset', async (_: Request, res: Response) => {
   await Promise.all([
     getBloodTests().deleteMany({}),
-    getBodyPhotos().deleteMany({}),
     getAnalyses().deleteMany({}),
     getFoodLogs().deleteMany({}),
     getInsightsCache().deleteMany({}),
@@ -205,13 +191,12 @@ app.get('/api/food', async (_: Request, res: Response) => {
 });
 
 app.get('/api/dashboard', async (_: Request, res: Response) => {
-  const [profile, recentPhotos, recentAnalyses, totalAnalyses] = await Promise.all([
+  const [profile, recentAnalyses, totalAnalyses] = await Promise.all([
     getProfile().findOne({}),
-    getBodyPhotos().find({}).sort({ date: -1 }).limit(6).toArray(),
     getAnalyses().find({}).sort({ date: -1 }).limit(10).toArray(),
     getAnalyses().countDocuments(),
   ]);
-  res.json({ profile, recentPhotos, recentAnalyses, totalAnalyses });
+  res.json({ profile, recentAnalyses, totalAnalyses });
 });
 
 connectDB().then(() => {

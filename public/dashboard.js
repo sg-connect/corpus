@@ -1,6 +1,6 @@
 async function loadDashboard() {
   const res = await fetch('/api/dashboard');
-  const { profile, recentPhotos, recentAnalyses, totalAnalyses } = await res.json();
+  const { profile, recentAnalyses, totalAnalyses } = await res.json();
 
   if (!profile) {
     document.getElementById('noProfile').style.display = 'block';
@@ -10,8 +10,7 @@ async function loadDashboard() {
   document.getElementById('dashboardContent').style.display = 'block';
   document.getElementById('welcomeTitle').textContent = `${profile.name}'s Health Dashboard`;
 
-  renderStats(profile, recentPhotos, recentAnalyses, totalAnalyses);
-  renderPhotos(recentPhotos);
+  renderStats(profile, totalAnalyses);
   await loadAnalysesPage(1);
   await loadInsights();
 
@@ -93,13 +92,11 @@ function renderInsights(insights) {
   renderList('lifestyleList', insights.lifestyle, 'No suggestions');
 }
 
-function renderStats(profile, photos, analyses, totalAnalyses) {
-  const latestPhoto = photos[0];
-
+function renderStats(profile, totalAnalyses) {
   const stats = [
     { value: profile.weight ? `${profile.weight} kg` : '—', label: 'Weight' },
-    { value: latestPhoto?.estimatedBodyFat ? `~${latestPhoto.estimatedBodyFat}%` : '—', label: 'Body Fat (est.)' },
-    { value: totalAnalyses ?? analyses.length, label: 'Analyses' },
+    { value: profile.height ? `${profile.height} cm` : '—', label: 'Height' },
+    { value: totalAnalyses ?? 0, label: 'Analyses' },
   ];
 
   document.getElementById('statsRow').innerHTML = stats.map(s => `
@@ -110,18 +107,6 @@ function renderStats(profile, photos, analyses, totalAnalyses) {
   `).join('');
 }
 
-function renderPhotos(photos) {
-  const container = document.getElementById('photoGrid');
-  if (!photos || photos.length === 0) return;
-
-  container.innerHTML = photos.map(p => `
-    <div style="text-align:center">
-      <img src="/uploads/${p.filename}" style="width:100px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
-      <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem">${new Date(p.date).toLocaleDateString()}</div>
-      ${p.estimatedBodyFat ? `<div style="font-size:0.75rem;color:var(--accent)">~${p.estimatedBodyFat}% fat</div>` : ''}
-    </div>
-  `).join('');
-}
 
 let dashPage = 1;
 const DASH_LIMIT = 5;
