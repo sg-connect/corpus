@@ -3,7 +3,7 @@ import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
 import { connectDB, getProfile, getBloodTests, getBodyPhotos, getAnalyses, getFoodLogs } from './services/db';
-import { analyzeHealth, analyzeBodyPhoto, parseBloodTestText, streamAnalysis } from './services/ollama';
+import { analyzeHealth, analyzeBodyPhoto, streamAnalysis } from './services/ollama';
 import { AnalysisEntry, BloodTest, BodyPhoto } from './models';
 
 const app = express();
@@ -46,16 +46,15 @@ app.get('/api/blood-tests', async (_: Request, res: Response) => {
 
 app.post('/api/blood-tests', async (req: Request, res: Response) => {
   const { rawText, date, notes } = req.body;
-  const markers = await parseBloodTestText(rawText);
   const test: Omit<BloodTest, '_id'> = {
     date: new Date(date || Date.now()),
     rawText,
-    markers,
+    markers: [],
     notes,
     createdAt: new Date(),
   };
   const result = await getBloodTests().insertOne(test as BloodTest);
-  res.json({ id: result.insertedId, markers });
+  res.json({ id: result.insertedId, markers: [] });
 });
 
 app.get('/api/photos', async (_: Request, res: Response) => {
@@ -75,15 +74,29 @@ app.post('/api/photos', upload.single('photo'), async (req: Request, res: Respon
   const fatMatch = aiAnalysis.match(/(\d+(?:\.\d+)?)\s*%/);
   const estimatedBodyFat = fatMatch ? parseFloat(fatMatch[1]) : undefined;
 
+  const now = new Date();
   const photo: Omit<BodyPhoto, '_id'> = {
-    date: new Date(),
+    date: now,
     filename: req.file.filename,
     weight,
     aiAnalysis,
     estimatedBodyFat,
-    createdAt: new Date(),
+    createdAt: now,
   };
   const result = await getBodyPhotos().insertOne(photo as BodyPhoto);
+
+  const entry: Omit<AnalysisEntry, '_id'> = {
+    date: now,
+    type: 'photo',
+    inputText: `Body photo${weight ? ` (${weight} kg)` : ''}`,
+    aiResponse: aiAnalysis,
+    summary: aiAnalysis.slice(0, 200),
+    keyFindings: [],
+    recommendations: [],
+    createdAt: now,
+  };
+  await getAnalyses().insertOne(entry as AnalysisEntry);
+
   res.json({ id: result.insertedId, aiAnalysis, estimatedBodyFat });
 });
 
@@ -125,8 +138,18 @@ app.post('/api/analyse', async (req: Request, res: Response) => {
 });
 
 app.get('/api/analyses', async (_: Request, res: Response) => {
-  const analyses = await getAnalyses().find({}).sort({ date: -1 }).limit(20).toArray();
+  const analyses = await getAnalyses().find({}).sort({ date: -1 }).limit(50).toArray();
   res.json(analyses);
+});
+
+app.delete('/api/reset', async (_: Request, res: Response) => {
+  await Promise.all([
+    getBloodTests().deleteMany({}),
+    getBodyPhotos().deleteMany({}),
+    getAnalyses().deleteMany({}),
+    getFoodLogs().deleteMany({}),
+  ]);
+  res.json({ ok: true });
 });
 
 app.post('/api/food', async (req: Request, res: Response) => {
@@ -141,13 +164,12 @@ app.get('/api/food', async (_: Request, res: Response) => {
 });
 
 app.get('/api/dashboard', async (_: Request, res: Response) => {
-  const [profile, recentTests, recentPhotos, recentAnalyses] = await Promise.all([
+  const [profile, recentPhotos, recentAnalyses] = await Promise.all([
     getProfile().findOne({}),
-    getBloodTests().find({}).sort({ date: -1 }).limit(5).toArray(),
-    getBodyPhotos().find({}).sort({ date: -1 }).limit(3).toArray(),
-    getAnalyses().find({}).sort({ date: -1 }).limit(5).toArray(),
+    getBodyPhotos().find({}).sort({ date: -1 }).limit(6).toArray(),
+    getAnalyses().find({}).sort({ date: -1 }).limit(10).toArray(),
   ]);
-  res.json({ profile, recentTests, recentPhotos, recentAnalyses });
+  res.json({ profile, recentPhotos, recentAnalyses });
 });
 
 connectDB().then(() => {

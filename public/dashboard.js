@@ -1,6 +1,6 @@
 async function loadDashboard() {
   const res = await fetch('/api/dashboard');
-  const { profile, recentTests, recentPhotos, recentAnalyses } = await res.json();
+  const { profile, recentPhotos, recentAnalyses } = await res.json();
 
   if (!profile) {
     document.getElementById('noProfile').style.display = 'block';
@@ -10,8 +10,8 @@ async function loadDashboard() {
   document.getElementById('dashboardContent').style.display = 'block';
   document.getElementById('welcomeTitle').textContent = `${profile.name}'s Health Dashboard`;
 
-  renderStats(profile, recentTests, recentPhotos);
-  renderBloodMarkers(recentTests);
+  renderStats(profile, recentPhotos, recentAnalyses);
+  renderSuggestions(recentAnalyses);
   renderPhotos(recentPhotos);
   renderAnalyses(recentAnalyses);
 
@@ -20,14 +20,13 @@ async function loadDashboard() {
   }
 }
 
-function renderStats(profile, tests, photos) {
-  const latestTest = tests[0];
+function renderStats(profile, photos, analyses) {
   const latestPhoto = photos[0];
 
   const stats = [
-    { value: `${profile.weight} kg`, label: 'Weight' },
+    { value: profile.weight ? `${profile.weight} kg` : '—', label: 'Weight' },
     { value: latestPhoto?.estimatedBodyFat ? `~${latestPhoto.estimatedBodyFat}%` : '—', label: 'Body Fat (est.)' },
-    { value: tests.length, label: 'Blood Tests' },
+    { value: analyses.length || 0, label: 'Analyses' },
   ];
 
   document.getElementById('statsRow').innerHTML = stats.map(s => `
@@ -38,30 +37,48 @@ function renderStats(profile, tests, photos) {
   `).join('');
 }
 
-function renderBloodMarkers(tests) {
-  const container = document.getElementById('bloodMarkers');
-  if (!tests || tests.length === 0) return;
+function renderSuggestions(analyses) {
+  const container = document.getElementById('suggestionsCard');
+  if (!analyses || analyses.length === 0) return;
 
-  const latest = tests[0];
-  if (!latest.markers || !Array.isArray(latest.markers) || latest.markers.length === 0) return;
+  const latest = analyses.find(a => a.type !== 'photo') || analyses[0];
+  const text = latest.aiResponse || '';
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const bullets = [];
+  let inRecs = false;
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (lower.includes('recommend') || lower.includes('suggest') || lower.includes('action')) {
+      inRecs = true;
+      continue;
+    }
+    if (inRecs && /^[-•→*]|\d+\./.test(line)) {
+      bullets.push(line.replace(/^[-•→*\d\.\s]+/, '').trim());
+      if (bullets.length >= 5) break;
+    }
+  }
+
+  if (bullets.length === 0) {
+    for (const line of lines) {
+      if (/^[-•→*]|\d+\./.test(line)) {
+        bullets.push(line.replace(/^[-•→*\d\.\s]+/, '').trim());
+        if (bullets.length >= 5) break;
+      }
+    }
+  }
+
+  if (bullets.length === 0) {
+    container.innerHTML = `<p style="font-size:0.9rem;line-height:1.6">${text.slice(0, 350)}${text.length > 350 ? '...' : ''}</p><p style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">From ${new Date(latest.date).toLocaleDateString()}</p>`;
+    return;
+  }
 
   container.innerHTML = `
-    <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem">${new Date(latest.date).toLocaleDateString()}</div>
-    ${latest.markers.slice(0, 12).map(m => {
-      let badge = '';
-      if (m.referenceMin !== undefined && m.referenceMax !== undefined) {
-        const inRange = m.value >= m.referenceMin && m.value <= m.referenceMax;
-        badge = inRange
-          ? `<span class="badge badge-ok">OK</span>`
-          : `<span class="badge badge-warn">Review</span>`;
-      }
-      return `
-        <div class="marker-row">
-          <span>${m.name}</span>
-          <span>${m.value} <span style="color:var(--muted);font-size:0.8rem">${m.unit}</span> ${badge}</span>
-        </div>`;
-    }).join('')}
-    ${latest.markers.length > 12 ? `<p style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">+${latest.markers.length - 12} more markers</p>` : ''}
+    <ul style="margin:0;padding-left:1.2rem;line-height:1.9">
+      ${bullets.map(s => `<li style="font-size:0.9rem">${s}</li>`).join('')}
+    </ul>
+    <p style="color:var(--muted);font-size:0.8rem;margin-top:0.75rem">From analysis on ${new Date(latest.date).toLocaleDateString()} · <a href="/analyse.html" style="color:var(--accent)">View all →</a></p>
   `;
 }
 
@@ -86,8 +103,11 @@ function renderAnalyses(analyses) {
     <div class="timeline-item">
       <div class="timeline-dot"></div>
       <div style="flex:1">
-        <div class="timeline-date">${new Date(a.date).toLocaleDateString()}</div>
-        <div style="font-size:0.9rem;line-height:1.5">${a.summary || a.aiResponse.slice(0, 200)}...</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.25rem">
+          <div class="timeline-date">${new Date(a.date).toLocaleDateString()}</div>
+          <span style="font-size:0.7rem;padding:0.1rem 0.5rem;border-radius:20px;background:${a.type === 'photo' ? '#e8f5f0' : '#e8f0fa'};color:${a.type === 'photo' ? 'var(--accent)' : '#1a7fd4'}">${a.type === 'photo' ? 'Photo' : 'Text'}</span>
+        </div>
+        <div style="font-size:0.875rem;line-height:1.5;color:var(--text)">${(a.summary || a.aiResponse || '').slice(0, 160)}${(a.summary || a.aiResponse || '').length > 160 ? '...' : ''}</div>
       </div>
     </div>
   `).join('');

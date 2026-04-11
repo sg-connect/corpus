@@ -23,18 +23,12 @@
         <div class="card">
           <div class="card-title">Health Input</div>
           <label>What would you like to analyse?</label>
-          <textarea id="inputText" placeholder="Paste blood test results, describe symptoms, write what you've been eating, list medications... anything health-related. The more context the better." style="min-height: 200px;"></textarea>
+          <textarea id="inputText" placeholder="Paste blood test results, describe symptoms, write what you've been eating, list medications, doctor's notes... anything health-related. The more context the better." style="min-height: 200px;"></textarea>
 
-          <label>Blood test date (if pasting results)</label>
-          <input type="date" id="bloodDate">
-
-          <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="runAnalysis()">
-              <span id="btnText">Analyse with AI</span>
-              <span id="btnSpinner" class="spinner" style="display:none"></span>
-            </button>
-            <button class="btn btn-secondary" onclick="saveBloodTest()" id="saveBloodBtn">Save Blood Test</button>
-          </div>
+          <button class="btn btn-primary" onclick="runAnalysis()" style="margin-top:0.5rem">
+            <span id="btnText">Analyse &amp; Save</span>
+            <span id="btnSpinner" class="spinner" style="display:none"></span>
+          </button>
         </div>
 
         <div class="card">
@@ -45,21 +39,23 @@
           </div>
           <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
           <input type="number" id="photoWeight" placeholder="Current weight (kg) — optional">
-          <button class="btn btn-secondary" id="analysePhotoBtn" onclick="analysePhoto()" style="display:none">Analyse Photo</button>
+          <button class="btn btn-secondary" id="analysePhotoBtn" onclick="analysePhoto()" style="display:none">Analyse &amp; Save Photo</button>
         </div>
       </div>
 
       <div>
         <div class="card" style="height: fit-content;">
           <div class="card-title">AI Analysis</div>
-          <div id="analysisOutput" class="analysis-output loading">Analysis will appear here. Enter your health data on the left and click "Analyse with AI".</div>
+          <div id="analysisOutput" class="analysis-output loading">Analysis will appear here. Enter your health data on the left and click "Analyse &amp; Save".</div>
         </div>
       </div>
     </div>
 
-    <div class="card" id="bloodMarkersCard" style="display:none">
-      <div class="card-title">Extracted Blood Markers</div>
-      <div id="markersTable"></div>
+    <div class="card" style="margin-top:1.5rem">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <div class="card-title" style="margin-bottom:0">Analysis History</div>
+      </div>
+      <div id="historyTable"><p style="color:var(--muted);font-size:0.9rem">No analyses yet.</p></div>
     </div>
   </div>
 
