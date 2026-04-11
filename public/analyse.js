@@ -76,8 +76,18 @@ async function analysePhoto() {
   const output = document.getElementById('analysisOutput');
   btn.textContent = 'Analysing photo...';
   btn.disabled = true;
-  output.textContent = 'Analysing body photo with AI vision model…';
   output.classList.add('loading');
+
+  let elapsed = 0;
+  const tick = () => {
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    const t = m > 0 ? `${m}m ${s}s` : `${s}s`;
+    output.textContent = `Analysing body photo with AI vision model… (${t})\n\nVision models take 1–3 minutes — still working.`;
+    elapsed++;
+  };
+  tick();
+  const timer = setInterval(tick, 1000);
 
   const formData = new FormData();
   formData.append('photo', selectedPhoto);
@@ -87,6 +97,7 @@ async function analysePhoto() {
   try {
     const res = await fetch('/api/photos', { method: 'POST', body: formData });
     const data = await res.json();
+    clearInterval(timer);
     if (data.error) { output.classList.remove('loading'); output.textContent = 'Error: ' + data.error; return; }
     output.classList.remove('loading');
     output.textContent = data.aiAnalysis;
@@ -100,6 +111,8 @@ async function analysePhoto() {
     btn.style.display = 'none';
     loadHistory();
   } catch (err) {
+    clearInterval(timer);
+    output.classList.remove('loading');
     output.textContent = 'Error: ' + err.message;
   } finally {
     btn.textContent = 'Analyse & Save Photo';
